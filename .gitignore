@@ -1,0 +1,21 @@
+# Credentials never live in this repo. The real defence is that qbo-mcp-setup
+# writes them to your OS config directory and refuses to write inside a git
+# work tree -- these patterns are belt-and-braces for hand-created files.
+credentials.json
+*.token.json
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# uv.lock IS committed on purpose: it pins the exact dependency versions so a
+# colleague's install matches the one that was tested.
