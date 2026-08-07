@@ -267,17 +267,52 @@ locked to your user account (`icacls` on Windows, mode `600` elsewhere).
 
 ---
 
+## Rolling it out to colleagues
+
+**Everyone runs `qbo-mcp-setup` themselves. Never copy a `credentials.json`
+between machines.** Two people sharing one credentials file will fight over the
+refresh token — Intuit invalidates the old value each time it rotates, so
+whoever refreshes second gets logged out, and eventually both do. Each person
+needs their own OAuth grant.
+
+Sharing the **Client ID and Secret** across your team is a separate question.
+They identify the *app*, not the user, so technically everyone can use the same
+pair — but a client secret in a shared doc or chat thread has stopped being a
+secret. For a sandbox demo that's acceptable. For production, treat it the way
+you'd treat any other production credential.
+
+**Tested on Windows 11 only.** The macOS and Linux paths are written and the
+test suite passes cross-platform, but nobody has run the real OAuth flow on
+those platforms yet. If a colleague is the first Mac user, expect to iron
+something out — most likely around the credentials directory
+(`~/Library/Application Support/qbo-mcp/`) or the browser handoff during setup.
+
+---
+
 ## Using it with a real company
 
-This is built and tested against a **sandbox**. It will work against a live
-QuickBooks company — answer `production` at the setup prompt and use your
-Production keys — but bear in mind:
+This is built and tested against a **sandbox**. The code will work unchanged
+against live books — answer `production` at the setup prompt and use Production
+keys — but there is a real gate in front of you:
 
-- Production apps need to go through Intuit's app review before other people can
-  connect to them. For your own company's books, that's not required.
-- Everything the tools return is sent to Claude to answer your question. Consider
-  whether that's appropriate for your real financial data.
-- The read-only guarantee holds identically. It's the same code path.
+**Intuit requires an app assessment before issuing production keys.** Every app
+that touches production data must complete a legal, technical and security
+questionnaire and be approved by Intuit's security team. This applies *whether
+or not* the app is listed in the QuickBooks app store, and **whether or not it
+is only ever used internally on your own company's books**. Budget about an hour
+for the questionnaire, plus review time, and expect to supply your host domain,
+launch URL, disconnect URL, and the countries and IP addresses the app runs
+from — questions that assume a hosted web app and take some thought to answer
+for something that runs on a laptop.
+
+Two other things worth deciding before you point this at real books:
+
+- **Everything the tools return is sent to Claude** in order to answer your
+  question. Real customer names, balances and financial statements leave your
+  machine. Whether that's acceptable is a policy call, not a technical one.
+- **The read-only guarantee is unchanged** — same code, same test — but the
+  stakes of the honest caveat above go up. On real books, "the token could write,
+  the code cannot" is worth someone else reading `client.py` to confirm.
 
 ---
 
