@@ -16,6 +16,12 @@ and get answers from the live books.
 Everything runs on your own machine. Nothing is hosted or deployed, and no
 company data leaves your computer except to Claude, in the answer.
 
+> **The figures above are from one particular sandbox.** You'll get your own
+> sandbox company when you sign up, with its own company number, its own
+> customers and its own dates — so your totals and overdue days will not match
+> these. That's expected, not a fault. Every example in this README is
+> illustrative for the same reason.
+
 ---
 
 ## What you can ask
@@ -92,9 +98,12 @@ git clone https://github.com/CharlesPiccioneBTP/Local-MCP-server-for-QuickBooks-
 
 Remember where you put it — you'll need the full path in step 5.
 
-### 3. Create an Intuit app
+### 3. Create your own Intuit app
 
-Free, no card required.
+Free, no card required. **Do this yourself even if a colleague has already set
+theirs up** — sandbox companies belong to the developer account that created
+them, so you can't connect to someone else's. You'll get your own, with its own
+sample data.
 
 1. Sign up at **[developer.intuit.com](https://developer.intuit.com)**. A **sandbox
    company** with realistic sample data is created for you automatically.
@@ -183,7 +192,8 @@ Fully quit and reopen it — closing the window isn't enough. Then ask:
 uv run qbo-mcp-doctor
 ```
 
-This runs without Claude and checks the whole chain:
+This runs without Claude and checks the whole chain. What matters is that every
+line says `ok` — the company name and figures will be your sandbox's, not these:
 
 ```
 [ ok ] Credentials loaded from C:\Users\you\AppData\Local\qbo-mcp\credentials.json
@@ -269,17 +279,19 @@ locked to your user account (`icacls` on Windows, mode `600` elsewhere).
 
 ## Rolling it out to colleagues
 
-**Everyone runs `qbo-mcp-setup` themselves. Never copy a `credentials.json`
-between machines.** Two people sharing one credentials file will fight over the
+Send them this repository and point them at the install steps above. There is
+nothing to hand over besides the link — no keys, no config, no credentials file.
+
+Each person follows the whole guide, including creating their own Intuit
+developer account. They get their own sandbox company, their own app, and their
+own Client ID and Secret, so **there is nothing to share and nothing to keep
+secret between you.** That is the intended setup, not a workaround.
+
+**Never copy a `credentials.json` between machines**, even though it might look
+like a shortcut. Two people sharing one credentials file will fight over the
 refresh token — Intuit invalidates the old value each time it rotates, so
 whoever refreshes second gets logged out, and eventually both do. Each person
 needs their own OAuth grant.
-
-Sharing the **Client ID and Secret** across your team is a separate question.
-They identify the *app*, not the user, so technically everyone can use the same
-pair — but a client secret in a shared doc or chat thread has stopped being a
-secret. For a sandbox demo that's acceptable. For production, treat it the way
-you'd treat any other production credential.
 
 **Tested on Windows 11 only.** The macOS and Linux paths are written and the
 test suite passes cross-platform, but nobody has run the real OAuth flow on
