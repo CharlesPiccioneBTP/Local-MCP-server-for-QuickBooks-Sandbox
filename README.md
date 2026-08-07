@@ -3,6 +3,8 @@
 Ask Claude Desktop questions about a QuickBooks Online company in plain English
 and get answers from the live books.
 
+**RESPONSES WILL BE DIFFERENT THAN THOSE WRITTEN HERE: EXAMPLE FIGURES ARE DERIVED FROM YOUR OWN SANDBOX**
+
 > **You:** Who owes us money and how overdue is it?
 >
 > **Claude:** Sandbox Company US 4768 has **$5,281.52** outstanding across 20 open
