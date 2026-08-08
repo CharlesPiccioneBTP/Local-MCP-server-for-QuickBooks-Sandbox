@@ -1,0 +1,18 @@
+WHAT THE API CANT DO
+
+Theres no read-only OAuth scope. I went in assuming I could grant Claude a scope that made writing to QuickBooks structurally impossible at the token level.
+This pushed the read-only guarantee into the code instead.
+
+The query language isn't SQL, its a narrower subset of it. No JOIN, GROUP BY, or OR in WHERE clauses.
+
+Sandbox companies are tied to the developer account that created them, not shareable. I'd assumed I could just hand someone a what I worked on and they'd be looking at the same sandbox.
+The examples are different for everybody.
+
+WHAT COST MORE THAN AN HOUR
+
+Refresh token rotation, and getting the persistence race right. Intuit rotates the refresh token roughly daily and kills the old value the instant a new one is created.
+That means a crash between "got the new token" and "wrote it to disk" doesn't degrade well. It permanently disconnects the integration. TO fix this, I implemented atomic writes,
+a cross-process lock so two server instances can't both refresh and invalidate each other, and re-reading credentials inside that lock so a losing process adopt's the winners token.
+
+The MCP SDK's error model was the opposite of what I assumed it to be. I initially wrote every failure path to raise MCPError, thinking that was the proper typed error. It's actually
+a protocol error. It never reaches the model at all. The whole tool call just fails silently from the model's POV. A plain Python exception is how I remedied the model's visibility into errors.
