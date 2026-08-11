@@ -13,6 +13,7 @@ dependencies = [
 [project.scripts]
 qbo-mcp = "qbo_mcp.server:main"
 qbo-mcp-setup = "qbo_mcp.auth:main"
+qbo-mcp-import = "qbo_mcp.importer:main"
 qbo-mcp-doctor = "qbo_mcp.doctor:main"
 
 [dependency-groups]

@@ -74,6 +74,12 @@ lines.
 
 Takes about 10 minutes, most of it on Intuit's website.
 
+> If someone has handed you a Client ID, Client Secret, Realm ID and refresh
+> token from an existing connection, skip steps 3 and 4 and run
+> `uv run qbo-mcp-import` instead. Read
+> [When someone genuinely cannot make their own account](#when-someone-genuinely-cannot-make-their-own-account)
+> first — it works, but you give up the ability to fix your own installation.
+
 ### 1. Install `uv`
 
 `uv` runs the server and handles Python and dependencies for you.
@@ -293,11 +299,47 @@ refresh token — Intuit invalidates the old value each time it rotates, so
 whoever refreshes second gets logged out, and eventually both do. Each person
 needs their own OAuth grant.
 
-**Tested on Windows 11 only.** The macOS and Linux paths are written and the
-test suite passes cross-platform, but nobody has run the real OAuth flow on
-those platforms yet. If a colleague is the first Mac user, expect to iron
-something out — most likely around the credentials directory
-(`~/Library/Application Support/qbo-mcp/`) or the browser handoff during setup.
+### When someone genuinely cannot make their own account
+
+There is a second entry point for the case where a colleague must be got working
+without an Intuit account of their own — evaluating the tool before committing to
+accounts, or a non-technical user who should not be walked through a developer
+signup:
+
+```bash
+uv run qbo-mcp-import
+```
+
+It asks for the Client ID, Client Secret, Realm ID and **refresh token** of an
+existing connection and writes the same credentials file `qbo-mcp-setup` writes.
+No code path differs after that: the file format, the refresh logic and the
+read-only guarantee are identical. The only thing skipped is the OAuth flow that
+would have produced those four values.
+
+Know what you are trading away before using it:
+
+- **A refresh token works on one machine at a time.** This is the same rotation
+  problem as copying `credentials.json`, because it is the same token. Whoever
+  supplies it must stop using it. If both machines refresh, the second one is
+  disconnected permanently.
+- **The recipient cannot repair their own installation.** Every other failure in
+  this README is fixed by re-running setup. They can't — that needs an account.
+  Every outage becomes a request to whoever issued the token, and outages are
+  guaranteed eventually: the refresh token expires after ~100 days of disuse.
+- **Access tokens are not refresh tokens.** The access token is the value people
+  reach for, because it is the one that visibly works in `curl`. It lasts an hour
+  and cannot be renewed. `importer.py` detects a pasted JWT or authorization code
+  and says so, rather than failing opaquely three steps later.
+
+For anyone who will use this for more than a trial, their own account remains the
+right answer. It takes about five minutes and removes every bullet above.
+
+**Tested end to end on Windows 11 only.** The macOS and Linux credential paths
+are covered by tests, so they resolve to the right place, but nobody has run the
+real OAuth flow on those platforms yet. If a colleague is the first Mac user,
+expect to iron something out — most likely the browser handoff during setup, or
+file permissions on the credentials directory
+(`~/Library/Application Support/qbo-mcp/`). Please report back if so.
 
 ---
 
@@ -331,13 +373,14 @@ Two other things worth deciding before you point this at real books:
 ## For developers
 
 ```bash
-uv run --group dev pytest       # 83 tests, no network or credentials needed
+uv run --group dev pytest       # 101 tests, no network or credentials needed
 ```
 
 | Module | Role |
 |---|---|
 | `client.py` | The only route to the QuickBooks API. GET-only, path-allowlisted. |
 | `auth.py` | OAuth setup and refresh. Holds the package's only POST. |
+| `importer.py` | Adopts a connection someone else authorised. No network of its own. |
 | `config.py` | Credential storage: atomic writes, cross-process lock, git refusal. |
 | `tools.py` | QuickBooks operations, callable without an MCP session. |
 | `server.py` | MCP tool definitions and descriptions. |
@@ -365,3 +408,9 @@ Notes on design decisions worth knowing before changing things:
 - **`minorversion` is pinned** (currently 75). Intuit changes response shapes
   between minor versions; an unattended server shouldn't have its output shift
   underneath it.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).

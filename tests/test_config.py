@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -17,7 +18,9 @@ import pytest
 from qbo_mcp.config import (
     ConfigError,
     Credentials,
+    config_dir,
     credentials_lock,
+    credentials_path,
     load_credentials,
     save_credentials,
 )
@@ -115,6 +118,56 @@ def test_unknown_fields_survive_a_round_trip(tmp_path: Path) -> None:
     )
     loaded = load_credentials(path)
     assert loaded.extra["future_field"] == "keep me"
+
+
+class TestConfigDirPerPlatform:
+    """Pin the per-platform credential locations.
+
+    Only Windows has been exercised end to end, so these at least verify the
+    path *logic* on the other two rather than leaving it entirely unproven.
+    They cannot catch a platform behaving differently, only a wrong path.
+    """
+
+    def test_windows_uses_localappdata(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("QBO_MCP_CONFIG_DIR", raising=False)
+        monkeypatch.setattr(sys, "platform", "win32")
+        monkeypatch.setenv("LOCALAPPDATA", r"C:\Users\someone\AppData\Local")
+
+        assert config_dir() == Path(r"C:\Users\someone\AppData\Local") / "qbo-mcp"
+
+    def test_macos_uses_application_support(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("QBO_MCP_CONFIG_DIR", raising=False)
+        monkeypatch.setattr(sys, "platform", "darwin")
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: Path("/Users/someone")))
+
+        assert config_dir() == Path("/Users/someone/Library/Application Support/qbo-mcp")
+
+    def test_linux_honours_xdg_config_home(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("QBO_MCP_CONFIG_DIR", raising=False)
+        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setenv("XDG_CONFIG_HOME", "/home/someone/.config")
+
+        assert config_dir() == Path("/home/someone/.config/qbo-mcp")
+
+    def test_linux_falls_back_when_xdg_unset(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("QBO_MCP_CONFIG_DIR", raising=False)
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: Path("/home/someone")))
+
+        assert config_dir() == Path("/home/someone/.config/qbo-mcp")
+
+    def test_override_wins_on_every_platform(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        for platform in ("win32", "darwin", "linux"):
+            monkeypatch.setattr(sys, "platform", platform)
+            monkeypatch.setenv("QBO_MCP_CONFIG_DIR", "/tmp/override")
+            assert config_dir() == Path("/tmp/override")
+
+    def test_credentials_land_inside_the_config_dir(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("QBO_MCP_CONFIG_DIR", "/tmp/override")
+        assert credentials_path() == Path("/tmp/override") / "credentials.json"
 
 
 def test_lock_is_released_after_use(tmp_path: Path) -> None:
